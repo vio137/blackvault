@@ -7,6 +7,7 @@ module.exports = async (req, res) => {
   if (!rateOk('stmt:' + clientKey(req), 120, 60000)) return send(res, 429, { ok: false, error: 'slow down' });
 
   const url = new URL(req.url, 'http://local');
+  if (url.searchParams.get('ping') === '1') { const db = await freshDb(); db.close(); return send(res, 200, { ok: true, ping: true }); }
   const account = url.searchParams.get('account') || '';
 
   // The vulnerable line: no quotes needed for a numeric parameter.

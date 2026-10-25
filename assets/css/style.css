@@ -337,3 +337,30 @@ footer{border-top:1px solid var(--line);padding:2.5rem 1.2rem 3.5rem;display:fle
   .credit-bar{flex-direction:column;text-align:center}
   .credit-text{text-align:center}
 }
+
+/* live-link chip */
+.link-status{display:inline-flex;align-items:center;gap:.45rem;font-size:.78rem;color:var(--muted);
+  padding:.36rem .75rem;border:1px solid var(--line2);border-radius:999px;white-space:nowrap}
+.link-status i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.link-status.warming i{background:var(--gold);animation:pulse 1s infinite}
+.link-status.live{color:var(--green);border-color:var(--green)}
+.link-status.live i{background:var(--green)}
+.link-status.down{color:var(--red);border-color:var(--red)}
+.link-status.down i{background:var(--red)}
+@keyframes pulse{50%{opacity:.25}}
+
+/* auto-demo */
+.mt.autodemo{border-color:var(--gold);color:var(--gold);margin-left:auto}
+.mt.autodemo:hover{background:var(--gold);color:#131313}
+.mt.autodemo.running{background:var(--gold);color:#131313}
+#bank-app.auto-glow{box-shadow:0 0 0 2px var(--gold),0 0 42px rgba(255,176,32,.35)}
+
+/* speaker notes */
+.speaker-note{display:none;margin-top:1.4rem;padding:1rem 1.2rem;border:1px dashed var(--gold);
+  border-radius:10px;color:var(--muted);font-size:.95rem;background:rgba(0,0,0,.25);text-align:left}
+.speaker-note span{display:block;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem}
+#deck.notes-on .speaker-note{display:block}
+#deck-notes{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:8px;
+  padding:.35rem .8rem;font-size:.85rem;cursor:pointer;margin-left:.6rem}
+#deck-notes[aria-pressed="true"]{color:var(--gold);border-color:var(--gold)}
+@media (max-width:640px){.link-status{display:none}}

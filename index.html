@@ -26,6 +26,7 @@
     <a href="#lab" data-nav>The Heist</a>
     <a href="#bonus" data-nav>Bonus Labs</a>
     <a href="#defense" data-nav>The Fix</a>
+    <span id="link-status" class="link-status warming" title="Live backend status"><i></i>connecting</span>
     <button id="open-deck" class="ghost-btn" type="button">Presentation</button>
     <button id="sound-toggle" class="ghost-btn" type="button" aria-pressed="false" title="Toggle sound">Sound: off</button>
   </nav>
@@ -175,6 +176,7 @@
       <div class="mode-tabs" role="group" aria-label="Run mode">
         <button id="tab-burp" class="mt active" type="button">With Burp Suite</button>
         <button id="tab-direct" class="mt" type="button">Direct mode <small>(no Burp, real requests)</small></button>
+        <button id="auto-demo" class="mt autodemo" type="button" title="Plays the full attack for a room, no Burp needed">&#9654; Auto-demo</button>
       </div>
 
       <ol class="steps" id="steps-burp">
@@ -401,6 +403,7 @@ stmt.bind([u, p])</code></pre>
       <button id="deck-prev" type="button">&larr;</button>
       <span id="deck-count">1 / 1</span>
       <button id="deck-next" type="button">&rarr;</button>
+      <button id="deck-notes" type="button" aria-pressed="false" title="Toggle presenter notes (N)">Notes</button>
     </div>
     <div class="deck-progress"><div id="deck-bar"></div></div>
   </div>

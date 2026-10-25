@@ -5,6 +5,7 @@ const { rateOk, clientKey, send, readBody, parseForm } = require('../lib/db');
 const COMBO = '7319';
 
 module.exports = async (req, res) => {
+  if (req.method === 'GET') return send(res, 200, { ok: true, ping: true });
   if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'POST only' });
   if (!rateOk('pin:' + clientKey(req), 240, 60000)) return send(res, 429, { ok: false, error: 'slow down' });
 

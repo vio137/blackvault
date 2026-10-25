@@ -4,6 +4,11 @@ const { freshDb, rateOk, clientKey, send, readBody, parseForm } = require('../li
 const crypto = require('crypto');
 
 module.exports = async (req, res) => {
+  // GET ping: lets the page warm the function on first load (real visit, one request).
+  if (req.method === 'GET') {
+    const db = await freshDb(); db.close();
+    return send(res, 200, { ok: true, ping: true });
+  }
   if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'POST only' });
   if (!rateOk('safelogin:' + clientKey(req), 60, 60000)) return send(res, 429, { ok: false, error: 'slow down' });
 

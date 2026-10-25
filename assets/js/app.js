@@ -212,8 +212,8 @@ $('#intercept-forward').addEventListener('click', function () {
   pendingRequest = null;
 });
 
-function sendLogin(path, body, typedU, typedP, rawForView) {
-  var btn = $('#login-btn'); btn.disabled = true; btn.textContent = 'Sending...';
+function sendLogin(path, body, typedU, typedP, rawForView, retried) {
+  var btn = $('#login-btn'); btn.disabled = true; btn.textContent = retried ? 'Waking server...' : 'Sending...';
   fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
     .then(function (res) {
       return res.text().then(function (text) { return { status: res.status, text: text }; });
@@ -224,7 +224,10 @@ function sendLogin(path, body, typedU, typedP, rawForView) {
       try { json = JSON.parse(r.text); } catch (e) { json = { ok: false, error: 'non-JSON response' }; }
       handleLoginResult(r.status, json, typedU, typedP);
     })
-    .catch(function () { toast('Network error - the server did not answer'); })
+    .catch(function () {
+      if (!retried) { toast('Server is waking from idle - one automatic retry.'); sendLogin(path, body, typedU, typedP, rawForView, true); return; }
+      toast('Network error - the server did not answer');
+    })
     .finally(function () { btn.disabled = false; btn.textContent = 'Sign in'; });
 }
 function pretty(text) { try { return JSON.stringify(JSON.parse(text), null, 2); } catch (e) { return text; } }
@@ -236,6 +239,7 @@ function handleLoginResult(status, json, typedU, typedP) {
     return;
   }
   if (status === 401) {
+    document.dispatchEvent(new CustomEvent('bv:login401'));
     $('#bank-app').classList.add('shake');
     setTimeout(function () { $('#bank-app').classList.remove('shake'); }, 500);
     beep(160, .25, 'sawtooth', .05);
@@ -262,6 +266,7 @@ function handleLoginResult(status, json, typedU, typedP) {
 }
 
 function openDashboard(json, typedU, typedP) {
+  document.dispatchEvent(new CustomEvent('bv:dash'));
   $('#login-pane').hidden = true;
   $('#dash-pane').hidden = false;
   $('#dash-welcome').textContent = 'Welcome, ' + (json.user.display_name || json.user.username);
@@ -403,10 +408,25 @@ var SLIDES = [
   { h: 'The fix', body: '<div class="mono-block">stmt = db.prepare(<span class="q-kw">"SELECT ... WHERE username = ? AND password = ?"</span>)\nstmt.bind([you, you])</div><p style="margin-top:1rem">Parameters are never concatenated into the command, so your text can never become SQL. The site lets you fire the same payload at the hardened endpoint and watch it die. Defense is not a claim here; it is a button.</p>' },
   { h: 'Rules of the game', body: '<p>These skills are legal only on systems you own or have written permission to test. This site grants you that permission for itself, on this page, right now.</p><p style="margin-top:1.4rem">Now scroll down and break the bank. &darr;</p>' }
 ];
+var SLIDE_NOTES = [
+  'Introduce the project in one line: a bank that is meant to be broken, broken live with Burp Suite. Hold this slide ten seconds, then move.',
+  'One sentence per tool. If asked: Burp Suite Community Edition is free, and everything shown today works in it.',
+  'Trace the diagram with your cursor. Land one idea: Burp sees and can change everything that passes.',
+  'Read the request aloud once. Stress that it is plain text - anyone parked in the middle can rewrite it.',
+  'This is the entire bug: string glue. If the room remembers one slide, make it this one.',
+  'Two facts only: quotes delimit text, and -- comments out the rest. Ask the room to say them back.',
+  'Walk the three bullets slowly. Finish with: after this payload, the password check simply ceases to exist.',
+  'Switch to the live lab now (or press Auto-demo and narrate). Do not rush the intercept moment; let the room read the edited request.',
+  'Open the Repeater lab on the page, run the UNION payload, and point at the flag row when it lands in the table.',
+  'Run the 40-guess attack live. The lesson is the odd response length: automation plus one anomaly.',
+  'Fire the same payload at the hardened server, live. Watch it return 401. Defense is proven here, not claimed.',
+  'Close on ethics: written permission is the whole difference between an engineer and a criminal. Then thank the room.'
+];
 var deckIdx = 0;
 function buildDeck() {
   $('#deck-slides').innerHTML = SLIDES.map(function (s, i) {
-    return '<div class="slide' + (i === 0 ? ' on' : '') + '"><h3>' + s.h + '</h3>' + s.body + '</div>';
+    return '<div class="slide' + (i === 0 ? ' on' : '') + '"><h3>' + s.h + '</h3>' + s.body +
+      '<div class="speaker-note"><span>Presenter notes</span>' + (SLIDE_NOTES[i] || '') + '</div></div>';
   }).join('');
 }
 buildDeck();
@@ -425,15 +445,142 @@ $('#open-deck-2').addEventListener('click', deckOpen);
 $('#deck-close').addEventListener('click', deckClose);
 $('#deck-prev').addEventListener('click', function () { deckShow(deckIdx - 1); });
 $('#deck-next').addEventListener('click', function () { deckShow(deckIdx + 1); });
+$('#deck-notes').addEventListener('click', function () {
+  var on = $('#deck').classList.toggle('notes-on');
+  this.setAttribute('aria-pressed', on ? 'true' : 'false');
+});
 document.addEventListener('keydown', function (e) {
   if ($('#deck').hidden) return;
   if (e.key === 'ArrowRight') deckShow(deckIdx + 1);
   if (e.key === 'ArrowLeft') deckShow(deckIdx - 1);
   if (e.key === 'Escape') deckClose();
+  if (e.key === 'n' || e.key === 'N') $('#deck-notes').click();
 });
 
 /* deep link: #presentation opens the deck */
 if (location.hash === '#presentation') deckOpen();
+
+/* ---------- connection warmup ----------
+   One real request per route on page load (triggered by the actual visit) so the
+   first click never pays the cold-start cost. No timers, no polling. */
+(function () {
+  var chip = $('#link-status');
+  var routes = ['/api/login', '/api/login-safe', '/api/statement?ping=1', '/api/pin'];
+  function ping(url) { return fetch(url).then(function (r) { return r.ok; }).catch(function () { return false; }); }
+  function warm(attempt) {
+    if (chip) { chip.className = 'link-status warming'; chip.innerHTML = '<i></i>waking the vault server&hellip;'; }
+    Promise.all(routes.map(ping)).then(function (rs) {
+      var ok = rs.filter(Boolean).length;
+      if (ok === routes.length) {
+        if (chip) { chip.className = 'link-status live'; chip.innerHTML = '<i></i>secure link live'; }
+      } else if (attempt < 1) {
+        setTimeout(function () { warm(attempt + 1); }, 3000);
+      } else if (chip) {
+        chip.className = 'link-status down';
+        chip.innerHTML = '<i></i>server unreachable - reload once';
+      }
+    });
+  }
+  warm(0);
+})();
+
+/* ---------- auto-demo: the whole heist, choreographed for a room ----------
+   Real requests to the real server throughout. The only simulated element is the
+   intercept window standing in for Burp - the same simulated element Direct mode
+   already labels. */
+var autoRunning = false;
+function typeInto(el, text, done) {
+  el.value = '';
+  var i = 0;
+  (function tick() {
+    if (!autoRunning) return;
+    if (i >= text.length) { done(); return; }
+    el.value += text[i++];
+    beep(600 + Math.random() * 200, .02, 'square', .012);
+    setTimeout(tick, 55 + Math.random() * 70);
+  })();
+}
+function submitLogin() {
+  var f = $('#login-form');
+  if (f.requestSubmit) f.requestSubmit();
+  else f.dispatchEvent(new Event('submit', { cancelable: true }));
+}
+function autoDemoEnd(msg) {
+  autoRunning = false;
+  var b = $('#auto-demo'); b.classList.remove('running'); b.innerHTML = '&#9654; Auto-demo';
+  $('#bank-app').classList.remove('auto-glow');
+  if (msg) toast(msg);
+}
+$('#auto-demo').addEventListener('click', function () {
+  if (autoRunning) { autoDemoEnd('Auto-demo stopped.'); return; }
+  autoRunning = true;
+  var ab = $('#auto-demo'); ab.classList.add('running'); ab.innerHTML = '&#9632; Stop';
+  document.getElementById('lab').scrollIntoView({ behavior: 'smooth' });
+  $('#bank-app').classList.add('auto-glow');
+  $('#dash-pane').hidden = true; $('#login-pane').hidden = false; $('#injection-banner').hidden = true;
+  setEndpoint('vuln'); setMode('direct');
+  toast('Auto-demo: every request below is real. Only the intercept window stands in for Burp.');
+
+  setTimeout(function () {
+    if (!autoRunning) return;
+    toast('Step 1 of 4: an honest login with a wrong password.');
+    typeInto($('#f-user'), 'admin', function () {
+      typeInto($('#f-pass'), 'hunter2', function () {
+        setTimeout(function () {
+          if (!autoRunning) return;
+          submitLogin();
+          setTimeout(function () {
+            if (!autoRunning) return;
+            if (!$('#intercept-modal').hidden) {
+              toast('Burp catches even the honest request. Forwarding it unchanged.');
+              $('#intercept-forward').click();
+            }
+          }, 2200);
+        }, 600);
+      });
+    });
+  }, 1000);
+
+  var on401 = function () {
+    if (!autoRunning) return;
+    setTimeout(function () {
+      if (!autoRunning) return;
+      toast('Step 2 of 4: 401, as expected. Now the same login, but intercepted.');
+      typeInto($('#f-user'), "' OR '1'='1' -- ", function () {
+        typeInto($('#f-pass'), 'x', function () {
+          setTimeout(function () {
+            if (!autoRunning) return;
+            toast('Step 3 of 4: Burp catches the request before the server sees it.');
+            submitLogin();
+            setTimeout(function () {
+              if (!autoRunning) return;
+              if (!$('#intercept-modal').hidden) {
+                toast('Step 4 of 4: forwarding the edited request to the real server.');
+                $('#intercept-forward').click();
+              }
+            }, 2600);
+          }, 700);
+        });
+      });
+    }, 1800);
+  };
+  document.addEventListener('bv:login401', function once() {
+    document.removeEventListener('bv:login401', once);
+    on401();
+  });
+  document.addEventListener('bv:dash', function once2() {
+    document.removeEventListener('bv:dash', once2);
+    if (!autoRunning) return;
+    setTimeout(function () {
+      autoDemoEnd();
+      $('#qb-play').click();
+      toast('Heist complete - the query assembly below shows exactly why it worked.');
+    }, 2200);
+  });
+  document.addEventListener('keydown', function esc(e) {
+    if (e.key === 'Escape' && autoRunning) { autoDemoEnd('Auto-demo stopped.'); document.removeEventListener('keydown', esc); }
+  });
+});
 
 /* smooth nav */
 $$('[data-nav]').forEach(function (a) {
