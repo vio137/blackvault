@@ -432,6 +432,9 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') deckClose();
 });
 
+/* deep link: #presentation opens the deck */
+if (location.hash === '#presentation') deckOpen();
+
 /* smooth nav */
 $$('[data-nav]').forEach(function (a) {
   a.addEventListener('click', function (e) {
