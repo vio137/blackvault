@@ -230,6 +230,11 @@ function sendLogin(path, body, typedU, typedP, rawForView) {
 function pretty(text) { try { return JSON.stringify(JSON.parse(text), null, 2); } catch (e) { return text; } }
 
 function handleLoginResult(status, json, typedU, typedP) {
+  if (status === 404 || status === 405) {
+    beep(180, .2, 'sawtooth', .05);
+    toast(status + ' - the bank has nothing at that path. Check the request line.');
+    return;
+  }
   if (status === 401) {
     $('#bank-app').classList.add('shake');
     setTimeout(function () { $('#bank-app').classList.remove('shake'); }, 500);
