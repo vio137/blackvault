@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLACKVAULT - Break the Bank with Burp Suite</title>
+<meta name="description" content="An interactive live lab: intercept this bank's real traffic with Burp Suite and bypass its login with SQL injection. PCA1 project by Debabrata Mondal, MAKAUT.">
+<link rel="icon" type="image/jpeg" href="assets/img/makaut-logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+<header id="topbar">
+  <a class="brand" href="#hero" data-nav>
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="20" cy="20" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/><circle cx="20" cy="20" r="3.5" fill="currentColor"/><line x1="20" y1="3" x2="20" y2="10" stroke="currentColor" stroke-width="2.5"/><line x1="20" y1="30" x2="20" y2="37" stroke="currentColor" stroke-width="2.5"/></svg>
+    <span>BLACK<em>VAULT</em></span>
+  </a>
+  <nav>
+    <a href="#story" data-nav>The Flaw</a>
+    <a href="#lab" data-nav>The Heist</a>
+    <a href="#bonus" data-nav>Bonus Labs</a>
+    <a href="#defense" data-nav>The Fix</a>
+    <button id="open-deck" class="ghost-btn" type="button">Presentation</button>
+    <button id="sound-toggle" class="ghost-btn" type="button" aria-pressed="false" title="Toggle sound">Sound: off</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============ HERO ============ -->
+<section id="hero">
+  <div class="hero-vault" aria-hidden="true">
+    <svg viewBox="0 0 300 300" class="vault-door">
+      <circle cx="150" cy="150" r="140" class="ring r1"/>
+      <circle cx="150" cy="150" r="112" class="ring r2"/>
+      <circle cx="150" cy="150" r="84"  class="ring r3"/>
+      <circle cx="150" cy="150" r="56"  class="ring r4"/>
+      <g class="spokes">
+        <line x1="150" y1="30" x2="150" y2="270"/><line x1="30" y1="150" x2="270" y2="150"/>
+        <line x1="65" y1="65" x2="235" y2="235"/><line x1="235" y1="65" x2="65" y2="235"/>
+      </g>
+      <circle cx="150" cy="150" r="18" class="hub"/>
+    </svg>
+  </div>
+  <div class="hero-copy">
+    <p class="kicker reveal">An intentionally vulnerable bank &middot; a real backend &middot; one legendary tool</p>
+    <h1 class="reveal">BREAK THE<br><span class="stroke">BANK.</span></h1>
+    <p class="lede reveal">This site is the target. Its login talks to a live server with a fatal SQL flaw, on purpose.
+    Intercept the traffic with <strong>Burp Suite</strong>, bend one request, and walk into the vault.</p>
+    <div class="hero-cta reveal">
+      <a class="btn primary" href="#lab" data-nav>Start the heist</a>
+      <button class="btn" id="open-deck-2" type="button">Watch the story</button>
+    </div>
+    <div class="hero-badges reveal">
+      <span class="badge live">LIVE BACKEND</span>
+      <span class="badge">FAKE DATA ONLY</span>
+      <span class="badge">PCA1 PROJECT</span>
+    </div>
+  </div>
+  <div class="credit-bar reveal">
+    <span class="logo-chip"><img src="assets/img/makaut-logo.jpg" alt="MAKAUT logo"></span>
+    <span class="credit-text">Done by <strong>Debabrata Mondal</strong> &middot; Maulana Abul Kalam Azad University of Technology, West Bengal</span>
+  </div>
+  <div class="scroll-hint" aria-hidden="true"><span></span></div>
+</section>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker-track"></div></div>
+
+<!-- ============ THE FLAW ============ -->
+<section id="story">
+  <h2 class="reveal"><span class="num">01</span> The setup</h2>
+  <div class="cards">
+    <article class="card tilt reveal">
+      <div class="card-icon">&#127974;</div>
+      <h3>The bank</h3>
+      <p>BLACKVAULT Private Bank. Login form, account dashboard, side-gate PIN. Everything runs on a real server with a real SQLite database. The money is fake. The vulnerability is not.</p>
+    </article>
+    <article class="card tilt reveal">
+      <div class="card-icon">&#128299;</div>
+      <h3>The flaw</h3>
+      <p>The server builds its SQL query by gluing your typing straight into the command string. Whatever you type becomes part of the command. That is SQL injection, one of the oldest and most exploited bugs on the web.</p>
+    </article>
+    <article class="card tilt reveal">
+      <div class="card-icon">&#9874;&#65039;</div>
+      <h3>The tool</h3>
+      <p>Burp Suite sits between your browser and the bank as an interception proxy. Every request and response stops at your desk for editing before it moves on. Nothing about the page is out of reach.</p>
+    </article>
+  </div>
+
+  <div class="proxy-scene reveal">
+    <h3 class="scene-title">Where Burp stands</h3>
+    <div class="proxy-diagram">
+      <div class="node browser-n"><span class="node-ico">&#128421;&#65039;</span>Your browser</div>
+      <div class="wire"><div class="packet p1"></div><div class="packet p2"></div></div>
+      <div class="node burp-n"><span class="node-ico">&#128737;&#65039;</span>BURP SUITE<small>pause &middot; read &middot; edit &middot; forward</small></div>
+      <div class="wire"><div class="packet p3"></div><div class="packet p4"></div></div>
+      <div class="node server-n"><span class="node-ico">&#128451;&#65039;</span>BLACKVAULT server</div>
+    </div>
+    <p class="scene-note">Your browser thinks it is talking to the bank. The bank thinks it is talking to you. Burp is in the middle, and everything that passes through is yours to rewrite.</p>
+  </div>
+</section>
+
+<!-- ============ THE HEIST (LIVE LAB) ============ -->
+<section id="lab">
+  <h2 class="reveal"><span class="num">02</span> The heist <span class="tag-live">LIVE</span></h2>
+  <p class="section-lede reveal">Mission: get into the account dashboard without knowing a single password. Burp Proxy catches your login request, you inject SQL into it, the server runs it. Five steps, all real.</p>
+
+  <div class="lab-grid">
+    <!-- Bank app -->
+    <div class="bank-app reveal" id="bank-app">
+      <div class="bank-head">
+        <span class="bank-dot"></span><span class="bank-dot"></span><span class="bank-dot"></span>
+        <span class="bank-title">BLACKVAULT Private Bank &middot; client portal</span>
+        <span class="vuln-stamp" title="This app is deliberately insecure for training">INTENTIONALLY VULNERABLE</span>
+      </div>
+
+      <div id="login-pane">
+        <div class="endpoint-toggle" role="group" aria-label="Endpoint mode">
+          <button id="mode-vuln" class="et active" type="button">Vulnerable server</button>
+          <button id="mode-safe" class="et" type="button">Hardened server</button>
+        </div>
+        <form id="login-form" autocomplete="off">
+          <label>Username
+            <input type="text" id="f-user" name="username" placeholder="try: admin" spellcheck="false">
+          </label>
+          <label>Password
+            <input type="text" id="f-pass" name="password" placeholder="you do not know it" spellcheck="false">
+          </label>
+          <button type="submit" class="btn primary wide" id="login-btn">Sign in</button>
+        </form>
+        <p class="form-hint">Endpoint: <code id="endpoint-label">POST /api/login</code></p>
+      </div>
+
+      <div id="dash-pane" hidden>
+        <div class="dash-head">
+          <div>
+            <p class="dash-welcome" id="dash-welcome">Welcome</p>
+            <p class="dash-role" id="dash-role"></p>
+          </div>
+          <button class="btn small" id="logout-btn" type="button">Log out</button>
+        </div>
+        <div class="balance-card">
+          <span>Total balance</span>
+          <strong id="dash-balance">-</strong>
+        </div>
+        <div class="dash-row">
+          <div class="mini-card"><span>Session token</span><code id="dash-token">-</code></div>
+          <div class="mini-card"><span>Vault override code</span><code class="locked">LOCKED - steal it in Bonus Lab 1</code></div>
+        </div>
+        <div class="injection-banner" id="injection-banner" hidden>
+          <strong>INJECTION DETECTED.</strong>
+          <span id="injection-detail"></span>
+        </div>
+      </div>
+
+      <div class="http-panel">
+        <div class="http-tabs">
+          <span class="http-tab-title">Wire view</span>
+          <button class="http-tab active" data-pane="req" type="button">Request</button>
+          <button class="http-tab" data-pane="res" type="button">Response</button>
+        </div>
+        <pre id="http-req" class="http-view">// submit the login to see the real request here</pre>
+        <pre id="http-res" class="http-view" hidden>// and the real response here</pre>
+      </div>
+    </div>
+
+    <!-- Mission console -->
+    <div class="mission-console reveal">
+      <div class="mode-tabs" role="group" aria-label="Run mode">
+        <button id="tab-burp" class="mt active" type="button">With Burp Suite</button>
+        <button id="tab-direct" class="mt" type="button">Direct mode <small>(no Burp, real requests)</small></button>
+      </div>
+
+      <ol class="steps" id="steps-burp">
+        <li class="step" data-step="baseline">
+          <div class="step-dot">1</div>
+          <div class="step-body">
+            <h4>Get rejected first</h4>
+            <p>Type <code>admin</code> and any password into the bank and sign in. Watch the server say no in the Wire view. That 401 is the wall you are about to walk through.</p>
+            <span class="step-status" data-wait>waiting for a failed login&hellip;</span>
+          </div>
+        </li>
+        <li class="step" data-step="openburp">
+          <div class="step-dot">2</div>
+          <div class="step-body">
+            <h4>Open Burp's own browser</h4>
+            <p>In Burp Suite go to <strong>Proxy &rarr; Intercept</strong> and click <strong>Open browser</strong>. That built-in Chromium is already wired through Burp, no settings to touch. Load this page in it. <button class="copy-btn" data-copy="page-url" type="button">copy this page's URL</button></p>
+          </div>
+        </li>
+        <li class="step" data-step="arm">
+          <div class="step-dot">3</div>
+          <div class="step-body">
+            <h4>Arm the intercept</h4>
+            <p>Click <strong>Intercept is off</strong> so it reads <strong>Intercept is on</strong>. From now on every request freezes inside Burp until you say where it goes.</p>
+          </div>
+        </li>
+        <li class="step" data-step="fire">
+          <div class="step-dot">4</div>
+          <div class="step-body">
+            <h4>Fire the login again</h4>
+            <p>Back in Burp's browser, submit <code>admin</code> with any password. Burp catches the <code>POST /api/login</code> request mid-flight.</p>
+          </div>
+        </li>
+        <li class="step" data-step="inject">
+          <div class="step-dot">5</div>
+          <div class="step-body">
+            <h4>Inject and forward</h4>
+            <p>In Burp's intercept view, replace the username value with the payload, leave the password as anything, then press <strong>Forward</strong>.</p>
+            <div class="payload-box"><code id="payload-1">' OR '1'='1' -- </code><button class="copy-btn" data-copy="payload-1" type="button">copy</button></div>
+            <span class="step-status" data-wait>waiting for the vault to open&hellip;</span>
+          </div>
+        </li>
+      </ol>
+
+      <ol class="steps" id="steps-direct" hidden>
+        <li class="step" data-step="d-fire">
+          <div class="step-dot">1</div>
+          <div class="step-body">
+            <h4>Submit any login</h4>
+            <p>Direct mode turns this page into the intercept point. Sign in with <code>admin</code> and any password. The raw request pops up before it is sent, exactly like Burp's intercept window.</p>
+          </div>
+        </li>
+        <li class="step" data-step="d-edit">
+          <div class="step-dot">2</div>
+          <div class="step-body">
+            <h4>Edit the raw request</h4>
+            <p>In the popup, change the username to the payload, then hit <strong>Forward</strong>. The edited bytes go to the real server.</p>
+            <div class="payload-box"><code>' OR '1'='1' -- </code><button class="copy-btn" data-copy="payload-1" type="button">copy</button></div>
+          </div>
+        </li>
+        <li class="step" data-step="d-win">
+          <div class="step-dot">3</div>
+          <div class="step-body">
+            <h4>Vault opens</h4>
+            <p>The server runs your SQL and hands over the admin account. Same attack, same wire, no Burp required. The real tool just does it for every site you will ever test.</p>
+            <span class="step-status" data-wait>waiting for the vault to open&hellip;</span>
+          </div>
+        </li>
+      </ol>
+      <p class="direct-note" id="direct-note" hidden>Direct mode sends the genuine HTTP requests to the genuine server. Only the "Burp in the middle" part is performed by the page.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY IT WORKED ============ -->
+<section id="theory">
+  <h2 class="reveal"><span class="num">03</span> Why it worked</h2>
+  <p class="section-lede reveal">The server glues your typing into a SQL command. Watch the payload take the command apart, piece by piece.</p>
+  <div class="query-lab reveal">
+    <div class="query-stage">
+      <pre id="query-build" aria-live="polite"></pre>
+    </div>
+    <div class="query-controls">
+      <button class="btn small" id="qb-play" type="button">Play the assembly</button>
+      <p id="qb-caption">The server starts with a template and a hole where your input goes.</p>
+    </div>
+  </div>
+
+  <div class="truth-table reveal">
+    <h3>What actually broke, and what did not</h3>
+    <div class="tt-cols">
+      <div class="tt-col broke">
+        <h4>Broke</h4>
+        <ul>
+          <li>The <strong>trust boundary between data and command</strong>. Your text stopped being data and became SQL.</li>
+          <li>The bank's authentication. The server itself counted you as admin because its own query said so.</li>
+        </ul>
+      </div>
+      <div class="tt-col safe">
+        <h4>Did not break</h4>
+        <ul>
+          <li>No real bank, account or person. The database is fake, lives in memory, and resets itself.</li>
+          <li>No encryption was cracked. TLS still worked perfectly; Burp simply stands at the endpoint where traffic is readable.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BONUS LABS ============ -->
+<section id="bonus">
+  <h2 class="reveal"><span class="num">04</span> Bonus labs</h2>
+
+  <div class="bonus-lab reveal" id="lab-union">
+    <div class="bonus-copy">
+      <h3>Lab 1 &middot; Steal the vault codes with Repeater</h3>
+      <p>The bank's statement endpoint takes an account number and drops it into SQL unquoted. Repeater lets you replay and rewrite that request until the database hands over things it should not.</p>
+      <ol class="mini-steps">
+        <li>In Burp, load the statement URL below and let it reach the server once.</li>
+        <li>Find it in <strong>Proxy &rarr; HTTP history</strong>, right-click, <strong>Send to Repeater</strong>.</li>
+        <li>Replace the account value with the UNION payload, press <strong>Send</strong>, read the response.</li>
+      </ol>
+      <div class="payload-box"><span class="payload-label">target</span><code id="union-target">GET /api/statement?account=2</code><button class="copy-btn" data-copy="union-target-url" type="button">copy URL</button></div>
+      <div class="payload-box"><span class="payload-label">payload</span><code id="payload-2">-1 UNION SELECT id, code, note, 0 FROM vault_secrets</code><button class="copy-btn" data-copy="payload-2" type="button">copy</button></div>
+      <p class="lab-hint">Why four columns? The real query returns <code>id, kind, amount, note</code>. UNION only works when both sides line up, which is why your first guesses may come back as SQL errors. Those errors are the database talking to you.</p>
+      <div class="direct-runner">
+        <span class="dr-label">Direct mode</span>
+        <input type="text" id="union-url" spellcheck="false">
+        <button class="btn small" id="union-run" type="button">Send</button>
+      </div>
+      <div class="result-table-wrap" id="union-result" hidden>
+        <table id="union-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="bonus-lab reveal" id="lab-intruder">
+    <div class="bonus-copy">
+      <h3>Lab 2 &middot; Crack the side gate with Intruder</h3>
+      <p>A four-digit PIN guards the service entrance. No injection this time: Burp <strong>Intruder</strong> fires a whole list of guesses at the endpoint and you spot the one response that looks different.</p>
+      <ol class="mini-steps">
+        <li>POST a guess to <code>/api/pin</code> once, send it to Intruder from HTTP history.</li>
+        <li>Mark the <code>pin</code> value as the payload position (Sniper attack).</li>
+        <li>Paste the candidate list, start the attack, sort by response length. The odd one out wins.</li>
+      </ol>
+      <button class="copy-btn" data-copy="pin-list" type="button">copy the 40-candidate PIN list</button>
+      <p class="lab-hint">In Burp Community Edition Intruder is throttled, so forty guesses take a moment. The leaked combo from Lab 1 would also work. Thieves have options.</p>
+      <div class="direct-runner">
+        <span class="dr-label">Direct mode</span>
+        <button class="btn small" id="pin-auto" type="button">Run the 40-guess attack here</button>
+        <span class="lab-hint" id="pin-status"></span>
+      </div>
+      <div class="pin-grid" id="pin-grid" hidden></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE FIX ============ -->
+<section id="defense">
+  <h2 class="reveal"><span class="num">05</span> The fix</h2>
+  <div class="fix-grid">
+    <div class="code-card bad reveal">
+      <h4>Vulnerable (what this bank does)</h4>
+      <pre><code>query = "SELECT ... FROM users
+  WHERE username = '" + u + "'
+  AND password = '" + p + "'"</code></pre>
+      <p>Your text becomes command.</p>
+    </div>
+    <div class="code-card good reveal">
+      <h4>Hardened (one switch away)</h4>
+      <pre><code>stmt = db.prepare(
+  "SELECT ... FROM users
+   WHERE username = ? AND password = ?")
+stmt.bind([u, p])</code></pre>
+      <p>Your text stays data. Always.</p>
+    </div>
+  </div>
+  <div class="try-hardened reveal">
+    <p>Do not take our word for it. Flip the bank to the <button class="inline-link" id="go-hardened" type="button">hardened server</button> and fire the same payload. It bounces off, because the database never sees your text as SQL.</p>
+  </div>
+</section>
+
+<!-- ============ ETHICS ============ -->
+<section id="ethics">
+  <h2 class="reveal"><span class="num">06</span> Rules of the game</h2>
+  <div class="ethics-card reveal">
+    <p>Everything you just did is a crime scene skill. It is legal exactly one way: on systems you own or have written permission to test. This site gives you that permission for itself, in writing, right here. Nowhere else.</p>
+    <p>That is the whole line between a security professional and a case number.</p>
+  </div>
+</section>
+
+<footer>
+  <span class="logo-chip big"><img src="assets/img/makaut-logo.jpg" alt="MAKAUT logo"></span>
+  <div class="foot-text">
+    <p><strong>BLACKVAULT</strong> - an interactive Burp Suite live lab</p>
+    <p>Done by <strong>Debabrata Mondal</strong> &middot; PCA1 &middot; Maulana Abul Kalam Azad University of Technology, West Bengal</p>
+    <p class="foot-fine">Deliberately vulnerable training application. All names, balances and secrets are fictional and reset on every request.</p>
+  </div>
+</footer>
+
+</main>
+
+<!-- ============ INTERCEPT MODAL (DIRECT MODE) ============ -->
+<div id="intercept-modal" class="modal" hidden>
+  <div class="modal-card burp-ui">
+    <div class="burp-ui-head">
+      <span class="burp-logo">BURP <em>SUITE</em> &middot; INTERCEPT</span>
+      <span class="burp-sim-note">page-simulated window, real request</span>
+    </div>
+    <p class="intercept-flag">Intercept is on</p>
+    <textarea id="intercept-editor" spellcheck="false"></textarea>
+    <div class="burp-ui-actions">
+      <button class="btn primary" id="intercept-forward" type="button">Forward</button>
+      <button class="btn" id="intercept-drop" type="button">Drop</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRESENTATION DECK ============ -->
+<div id="deck" class="deck" hidden>
+  <div class="deck-frame">
+    <button id="deck-close" class="deck-close" type="button" aria-label="Close presentation">&times;</button>
+    <div id="deck-slides"></div>
+    <div class="deck-nav">
+      <button id="deck-prev" type="button">&larr;</button>
+      <span id="deck-count">1 / 1</span>
+      <button id="deck-next" type="button">&rarr;</button>
+    </div>
+    <div class="deck-progress"><div id="deck-bar"></div></div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/js/core.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

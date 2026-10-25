@@ -1,0 +1,7 @@
+{
+  "name": "blackvault",
+  "private": true,
+  "description": "BLACKVAULT - Burp Suite live lab (PCA1). Intentionally vulnerable training app, fake data only.",
+  "engines": { "node": "22.x" },
+  "dependencies": { "sql.js": "^1.12.0" }
+}
